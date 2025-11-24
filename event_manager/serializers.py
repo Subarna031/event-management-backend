@@ -1,0 +1,53 @@
+from rest_framework import serializers
+from .models import User, Event, EventInterest
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'user_type']
+        read_only_fields = ['id']
+
+class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+    
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 'user_type']
+    
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            user_type=validated_data.get('user_type', 'user')
+        )
+        return user
+
+class EventSerializer(serializers.ModelSerializer):
+    created_by = UserSerializer(read_only=True)
+    interested_count = serializers.SerializerMethodField()
+    interested_count= serializers.IntegerField(read_only=True)
+    is_interested = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Event
+        fields = ['id', 'title', 'description', 'date', 'location', 'created_by', 'created_at', 'interested_count', 'is_interested']
+        read_only_fields = ['id', 'created_at', 'created_by']
+    
+    def get_interested_count(self, obj):
+        return EventInterest.objects.filter(event=obj).count()
+    
+    def get_is_interested(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return EventInterest.objects.filter(user=request.user, event=obj).exists()
+        return False
+
+class EventInterestSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    event = EventSerializer(read_only=True)
+    
+    class Meta:
+        model = EventInterest
+        fields = ['id', 'user', 'event', 'interested_at']
+        read_only_fields = ['id', 'interested_at']
