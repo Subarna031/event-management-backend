@@ -28,10 +28,11 @@ class EventSerializer(serializers.ModelSerializer):
     interested_count = serializers.SerializerMethodField()
     interested_count= serializers.IntegerField(read_only=True)
     is_interested = serializers.SerializerMethodField()
-    
+    creator_name= serializers.ReadOnlyField(source='created_by.username')
+
     class Meta:
         model = Event
-        fields = ['id', 'title', 'description', 'date', 'location', 'created_by', 'created_at', 'interested_count', 'is_interested']
+        fields = ['id', 'title', 'description', 'date', 'location', 'creator_name', 'created_by', 'created_at', 'interested_count', 'is_interested']
         read_only_fields = ['id', 'created_at', 'created_by']
     
     def get_interested_count(self, obj):

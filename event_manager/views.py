@@ -99,6 +99,9 @@ class EventViewSet(viewsets.ModelViewSet):
             return queryset.order_by('date')
         return queryset.order_by('-created_at')
     
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+    
     @action(detail= True, methods=['post'], url_path='send_notification')
     def send_notification(self, request, pk=None):
         event= self.get_object()
@@ -127,5 +130,28 @@ class EventViewSet(viewsets.ModelViewSet):
                 except Exception as e:
                     print(f"Failed to send email to {user.email}: {e}")
         return Response({'status': 'success', 'count':email_sent_count})
+    
+    # for admin analytics
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        try:
+            total_users = User.objects.count()
+            total_events = Event.objects.count()
+            
+            # --- FIX: Count the total records in the junction table ---
+            total_interests = EventInterest.objects.count()
 
-        
+            return Response({
+                "total_users": total_users,
+                "total_events": total_events,
+                "total_interests": total_interests
+            })
+            
+        except Exception as e:
+            # Note: Ensure you have 'User' and 'Event' models imported in this file
+            print(f"Error generating stats: {e}")
+            return Response({
+                "total_users": 0, 
+                "total_events": 0, 
+                "total_interests": 0 
+            })
