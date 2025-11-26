@@ -14,7 +14,8 @@ class User(AbstractUser):
 class Event(models.Model):
     title= models.CharField(max_length=100)
     description= models.TextField()
-    date= models.DateField()
+    date= models.DateTimeField()
+    end_date= models.DateTimeField(null=True, blank=True)
     location= models.CharField(max_length=60)
     created_by= models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_events")
     created_at= models.DateTimeField(auto_now_add=True)
@@ -25,7 +26,18 @@ class Event(models.Model):
     
     class Meta:
         ordering= ['-date']
-    
+
+class EventExperience(models.Model):
+    user= models.ForeignKey(User, on_delete=models.CASCADE)
+    event= models.ForeignKey(Event, on_delete=models.CASCADE, related_name="experiences")
+    description= models.TextField()
+    image= models.ImageField(upload_to="experiences_images/", blank= True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Experience by {self.user.username} on {self.event.title}"
+
+
 class EventInterest(models.Model):
     user= models.ForeignKey(User, on_delete=models.CASCADE, related_name="event_interests")
     event= models.ForeignKey(Event, on_delete=models.CASCADE, related_name="event_interests")

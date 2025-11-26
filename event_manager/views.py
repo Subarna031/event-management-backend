@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets, status, permissions
-from .models import User, Event, EventInterest
-from .serializers import UserSerializer, RegisterSerializer, EventSerializer, EventInterestSerializer
+from .models import User, Event, EventInterest, EventExperience
+from .serializers import UserSerializer, RegisterSerializer, EventSerializer, EventInterestSerializer, EventExperienceSerializer
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
@@ -85,7 +85,7 @@ class EventViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Only admin can view interested users'}, status= status.HTTP_403_FORBIDDEN)
         event= self.get_object()
         interests = EventInterest.objects.filter(event=event)
-        serializer= EventInterestSerializer(interests, many=True)
+        serializer= EventInterestSerializer(interests, many=True, context={"request": request})
         return Response(serializer.data)
 
     def get_queryset(self):
@@ -137,8 +137,6 @@ class EventViewSet(viewsets.ModelViewSet):
         try:
             total_users = User.objects.count()
             total_events = Event.objects.count()
-            
-            # --- FIX: Count the total records in the junction table ---
             total_interests = EventInterest.objects.count()
 
             return Response({
@@ -148,10 +146,17 @@ class EventViewSet(viewsets.ModelViewSet):
             })
             
         except Exception as e:
-            # Note: Ensure you have 'User' and 'Event' models imported in this file
             print(f"Error generating stats: {e}")
             return Response({
                 "total_users": 0, 
                 "total_events": 0, 
                 "total_interests": 0 
             })
+
+class ExperienceViewSet(viewsets.ModelViewSet):
+    queryset = EventExperience.objects.all()
+    serializer_class = EventExperienceSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
